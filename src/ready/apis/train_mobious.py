@@ -38,6 +38,11 @@ def norm_image(hot_img):
     """
     return torch.argmax(hot_img, 0)
 
+def calculate_epoch_loss(running_loss, num_samples):
+    """
+    Calculate epoch loss
+    """
+    return running_loss/num_samples
 
 def main(args):
     """
@@ -151,7 +156,9 @@ def main(args):
     - FULL_DATA_PATH, transform=None, target_transform=None
     - FULL_DATA_PATH, transform=transforms_rotations, target_transform=transforms_rotations
     - FULL_DATA_PATH, transform=transforms_img, target_transform=transforms_rotations
+    
 
+    Use of SEED value as 42 is arbitrary. Any 32-bit integer is a valid seed. Using a seed when splitting the full_dataset means we can ensure the split is the same every time we run this file. 
     """
 
     config_file = args.config_file
@@ -220,14 +227,24 @@ def main(args):
     # .get() returns None if operation is None or config arg not valid
     transform_arg = transform_map.get(config.transforms.transform_operation, None)
     target_transform_arg = transform_map.get(config.transforms.target_transform_operation, None)
-
+    
     ## Length 5; github_data_path
     ## Length 1143;  data_path
-    trainset = MobiousDataset(
+    full_dataset = MobiousDataset(
         data_path, transform=transform_arg ,target_transform=target_transform_arg
         )
+    
+    SEED = 42
 
-    logger.info(f"Length of trainset: {len(trainset)}")
+    TRAIN_SET_RATIO = config.datasets_splitting_ratios.train_set
+    VALIDATION_SET_RATIO = config.datasets_splitting_ratios.validation_set
+    TEST_SET_RATIO = config.datasets_splitting_ratios.test_set
+
+    train_set, validation_set, test_set = torch.utils.data.random_split(full_dataset, 
+                                                                        [TRAIN_SET_RATIO, VALIDATION_SET_RATIO, TEST_SET_RATIO],
+                                                                        torch.Generator().manual_seed(SEED)) 
+
+    logger.info(f"Length of trainset: {len(train_set)}")
 
     batch_size = config.model_hyperparameters.batch_size
     num_workers = config.model_hyperparameters.num_workers
@@ -235,10 +252,12 @@ def main(args):
     run_epoch = config.model_hyperparameters.epochs
 
     trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers
     )
     logger.info(f"trainloader.batch_size: {trainloader.batch_size}")
-
+    
+    validation_loader = torch.utils.data.DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=num_workers) 
+    
     if debug_print_flag:
         sanity_check_trainloader(trainloader, cuda_available)
 
@@ -260,10 +279,34 @@ def main(args):
     if cuda_available:
         model.cuda()
         loss_fn.cuda()
-
+    
     epoch = None
-    loss_values = []
-    performance = {
+
+    performance_metrics_labels = ["accuracy", 
+                                  "f1",
+                                  "recall",
+                                  "precision",
+                                  "fbeta",
+                                  "miou",
+                                  "dice"
+                                  ]
+    # Training Metrics
+
+    training_loss_values = []
+    training_performance = {
+        "accuracy": 0.0,
+        "f1": 0.0,
+        "recall": 0.0,
+        "precision": 0.0,
+        "fbeta": 0.0,
+        "miou": 0.0,
+        "dice": 0.0,
+    }
+
+    # Validation metrics
+
+    validation_loss_values = []
+    validation_performance = {
         "accuracy": 0.0,
         "f1": 0.0,
         "recall": 0.0,
@@ -276,12 +319,14 @@ def main(args):
     for i in range(epoch + 1 if epoch is not None else 1, run_epoch + 1):
         logger.info(f"#########################")
         logger.info(f"Train loop at epoch: {i}")
-        running_loss = 0.0
+        training_running_loss = 0.0
+        validation_running_loss = 0.0
         num_samples, num_batches = 0, 0
         # performance_epoch = {key: 0.0 for key in performance.keys()}
-
+        
+        # Training
         for j, data in enumerate(trainloader, 1):
-
+              
             images, labels = data
             if cuda_available:
                 images = images.cuda()
@@ -289,9 +334,9 @@ def main(args):
 
             optimizer.zero_grad()
             output = model(images)
-            # print(f"output.size() {output.size()};\
-            # type(output): {type(output)};\
-            # pred.type: {output.type()} ")
+            print(f"output.size() {output.size()};\
+            type(output): {type(output)};\
+            pred.type: {output.type()} ")
             # torch.Size([batch_size_, 4, 400, 640]);
             # <class 'torch.Tensor'>;
             # torch.cuda.FloatTensor
@@ -304,14 +349,14 @@ def main(args):
 
             for key, value in batch_metrics.items():
                 # print(f"{key}: {value:.4f}")
-                performance[key] += value * len(images) # weighted by batch size
+                training_performance[key] += value * len(images) # weighted by batch size
 
             num_samples += len(images)
-            running_loss += loss.item()
+            training_running_loss += loss.item()
 
             # Log every X batches
             if j % 50 == 0 or j == 1:
-                print(f"Loss at {j} mini-batch {loss.item():.4f}")
+                print(f"Training: Loss at {j} mini-batch {loss.item():.4f}")
             # TODO
             #                sanity_check(trainloader, model, cuda_available)
             #                save_checkpoint(
@@ -326,17 +371,74 @@ def main(args):
             # if j == 300:
             #     break
             # # performance[key].append(average_metric)
+        
+        # Validation
+        with torch.set_grad_enabled(False):
+                 for j, data in enumerate(validation_loader, 1):
+                    
+                    images, labels = data
+                    if cuda_available:
+                        images = images.cuda()
+                        labels = labels.cuda()
 
-        epoch_loss = running_loss / num_samples
-        loss_values.append(epoch_loss)
-        print(f"\nEpoch loss: {epoch_loss:.4f}")
+                    optimizer.zero_grad()
+                    output = model(images)
+                    print(f"output.size() {output.size()};\
+                    type(output): {type(output)};\
+                    pred.type: {output.type()} ")
+                    # torch.Size([batch_size_, 4, 400, 640]);
+                    # <class 'torch.Tensor'>;
+                    # torch.cuda.FloatTensor
 
-        for key in performance:
-            performance[key] /= num_samples
-            print(f"Average {key} @ epoch: {performance[key]:.4f}")
+                    loss = loss_fn(output, labels)
+                    
+                    batch_metrics = evaluate(output, labels)
+
+                    for key, value in batch_metrics.items():
+                        # print(f"{key}: {value:.4f}")
+                        validation_performance[key] += value * len(images) # weighted by batch size
+
+                    num_samples += len(images)
+                    validation_running_loss += loss.item()
+
+                    # Log every X batches
+                    if j % 50 == 0 or j == 1:
+                        print(f"Validation: Loss at {j} mini-batch {loss.item():.4f}")
+                    # TODO
+                    #                sanity_check(trainloader, model, cuda_available)
+                    #                save_checkpoint(
+                    #                    {
+                    #                        "epoch": run_epoch,
+                    #                        "state_dict": model.state_dict(),
+                    #                        "optimizer": optimizer.state_dict(),
+                    #                    },
+                    #                    "models/o.pth",
+                    #                )
+                    #
+                    # if j == 300:
+                    #     break
+                    # # performance[key].append(average_metric)
+
+        training_epoch_loss = calculate_epoch_loss(training_running_loss, num_samples)
+        validation_epoch_loss = calculate_epoch_loss(validation_running_loss, num_samples)
+        
+        training_loss_values.append(training_epoch_loss)
+        validation_loss_values.append(validation_epoch_loss)
+        print(f"\nTraining epoch loss: {training_epoch_loss:.4f}")
+        print(f"Validation epoch loss: {validation_epoch_loss:.4f}\n")
+        
+        print(f"Training Metrics:")
+        for key in performance_metrics_labels: 
+            training_performance[key] /= num_samples
+            print(f"Average {key} @ epoch: {training_performance[key]:.4f}")
+        
+        print(f"\nValidation Metrics:")
+        for key in performance_metrics_labels:     
+            validation_performance[key] /= num_samples
+            print(f"Average {key} @ epoch: {validation_performance[key]: .4f}")
 
     logger.info(f"#########################")
-    logger.info(f"Training complete.")
+    logger.info(f"Training and Validation complete.")
 
     current_time_stamp= datetime.now().strftime("%d-%b-%Y_%H-%M-%S")
 
@@ -350,15 +452,31 @@ def main(args):
         torch.save(model.state_dict(), model_name)
         logger.info(f"Saved PyTorch Model State to {model_name}")
 
-        json_file = PATH+"/performance_"+current_time_stamp+".json"
-        text = json.dumps(performance, indent=4)
+        json_file = PATH+"/training_performance_"+current_time_stamp+".json"
+        text = json.dumps(training_performance, indent=4)
         with open(json_file, "w") as out_file_obj:
             out_file_obj.write(text)
 
-        loss_file = PATH+"/loss_values_"+current_time_stamp+".csv"
+        json_file = PATH+"/validation_performance_"+current_time_stamp+".json"
+        text = json.dumps(validation_performance, indent=4)
+        with open(json_file, "w") as out_file_obj:
+            out_file_obj.write(text)
+       
+        logger.info(f"#########################")
+        
+        # To create a plot showing how loss values change for every epoch,
+        # use src/ready/apis/plot_losses.py script.
+ 
+        loss_file = PATH+"/training_loss_values_"+current_time_stamp+".csv"
         with open(loss_file, "w") as out_file_obj:
-            for loss in loss_values:
+            for loss in training_loss_values:
+                out_file_obj.write(f"{loss}\n") 
+
+        loss_file = PATH+"/validation_loss_values_"+current_time_stamp+".csv"
+        with open(loss_file, "w") as out_file_obj:
+            for loss in validation_loss_values:
                 out_file_obj.write(f"{loss}\n")
+
     else:
         logger.info(f"Model saving is disabled, set debug_print_flag to False (-df 0) to save model")
 
