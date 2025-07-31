@@ -6,6 +6,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from loguru import logger
 from omegaconf import OmegaConf
 
@@ -26,46 +27,52 @@ if __name__ == "__main__":
     config_file = args.config_file
     config = OmegaConf.load(config_file)
     MODELS_PATH=os.path.join(Path.home(), config.dataset.models_path)
-
-    file_numbers = range(1, 6)
-    path_filenames = [
-        os.path.join(MODELS_PATH, getattr(config.json_files, f"file{i}"))
-        for i in file_numbers
+    TRAINING_PERFORMANCE_FILES = config.performance.training_performance
+    VALIDATION_PERFORMANCE_FILES = config.performance.validation_performance
+    
+    performance_metrics = [
+        "accuracy",
+        "f1",
+        "recall",
+        "precision",
+        "fbeta",
+        "miou",
+        "dice"
     ]
-    print(path_filenames[0])
 
-    file_paths = [path_filenames[0], path_filenames[1], path_filenames[2]]
-    # file_paths = [path_filenames[0], path_filenames[1], path_filenames[2], path_filenames[3], path_filenames[4]]
-    logger.info(f"\n Files: {file_paths}")
+    x_axis = np.arange(len(performance_metrics))
+    n_bars = len(TRAINING_PERFORMANCE_FILES)
+    width = 0.3/n_bars
+    for i, current_training_performance_file in enumerate(TRAINING_PERFORMANCE_FILES, start=1):
 
-    data_list = []
+        path_current_training_performance = os.path.join(MODELS_PATH, current_training_performance_file)
 
-    for file_path in file_paths:
-        with open(file_path) as f:
-            data_list.append(json.load(f))
-    labels = list(data_list[0].keys())
-    # labels = labels[:-1] #remove dice TODO > #https://github.com/oocular/ready/issues/77
+        directory, _ = os.path.split(current_training_performance_file)
+        
+        current_training_performance = pd.read_json(path_current_training_performance, typ='series')
+        current_training_performance_values = current_training_performance.array
+        
+        current_training_performance_label = "training_performance_" + str(directory)
+        plt.bar(x_axis - (i - (n_bars - 1) / 2) * width, current_training_performance_values, width=width, label=current_training_performance_label, alpha=0.5)
 
-    model_names = ["naug_d1144", "waug_d1144", "waug_d0572"] #waug_d0286 #waug_d0145
-    fig, ax = plt.subplots(figsize=(12, 7))
-    x = np.arange(len(labels))
-    bar_width = 0.15
+    
+    for i, current_validation_performance_file in enumerate(VALIDATION_PERFORMANCE_FILES, start=1):
+        
+        path_current_validation_performance = os.path.join(MODELS_PATH, current_validation_performance_file)
 
-    for i, data in enumerate(data_list):
-        values = [data[label] for label in labels]
-        offset = bar_width * i
-        rects = ax.bar(x + offset, values, bar_width, label=model_names[i] )
+        directory, _ = os.path.split(current_validation_performance_file)
 
-    # ax.set_title('Comparison of Model Metrics', fontsize=14)
-    ax.set_xlabel('Metrics', fontsize=18)
-    ax.set_ylabel('Scores', fontsize=18)
-    ax.tick_params(axis='both', labelsize=13)
-    ax.set_xticks(x + bar_width * (len(data_list)-1)/2)
-    ax.set_xticklabels(labels, rotation=45, ha='right')
-    ax.legend()
-    ax.grid(axis='y', alpha=0.5)
-    ax.set_ylim(0.99, 1.0)
+        current_validation_performance = pd.read_json(path_current_validation_performance, typ='series')
+        current_validation_performance_values = current_validation_performance.array
 
-    plt.legend(fontsize=18)
-    plt.tight_layout()
+        current_validation_performance_label = "validation_performance_" + str(directory)
+        plt.bar(x_axis + (i - (n_bars -1 )/2) * width, current_validation_performance_values, width=width, label=current_validation_performance_label, alpha=0.5) 
+     
+    plt.xticks(x_axis, performance_metrics)
+    plt.ylabel('Values', fontsize=18)
+    plt.xlabel('Performance Metrics', fontsize=18)
+    plt.title('Training and Validation Performance Metrics', fontsize=18)
+    plt.legend(fontsize=15, loc='center right', framealpha=0.5)
+    plt.tick_params(axis='both', labelsize=17)
+    plt.grid(visible=True)
     plt.show()

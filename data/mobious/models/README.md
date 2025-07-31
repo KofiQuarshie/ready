@@ -5,7 +5,10 @@ The models are hosted on Hugging Face at: https://huggingface.co/mxochicale/read
 You can either: Clone the repository to download all models and files, or Use wget to download individual files as needed.
 
 After downloading, make sure to move the models into their corresponding directory, following this format:
-`~/datasets/ready/mobious/models_a10080gb/{DATE_GPU_TYPE}` where `{DATE_GPU_TYPE}` refers to the training date and the GPU type used (e.g., 27-Jul-2025_NVIDIA_A100_80GB_PCI).
+`~/datasets/ready/mobious/models_a10080gb/{DATE_GPU_TYPE}` where `{DATE_GPU_TYPE}` refers to the training date and the GPU type used (e.g., 27-Jul-2025_NVIDIA_A100_80GB_PCI). This can be achieved using the following: `cp source/directory/ /destination/directory/`.
+
+Note: If you would like to use the model weights, ensure you download the actual model weights from the Hugging Face repository. This can be accomplished by using the following:
+`wget https://huggingface.co/mxochicale/ready_hf/resolve/main/models/{model_folder}/{model_weights.pth}`. Otherwise, you will encounter an UnpicklingError.
 
 ## Model Path
 Below is an example of how the models and files are organised after training and optimisation:
@@ -42,16 +45,21 @@ bash scripts/models/inference_unet_with_mobious.bash
 * inference_mobious_weights_14-12-24_19-25-26.pth and _weights_15-12-24_07-00-10.pth
 ![fig](../../../docs/figs/inference_mobious_2models.svg)
 
-* plot losses 
+* plot training and validation loss and performance metrics
 ```
-python src/ready/apis/plot_losses.py -p <PATH> -lf1 <*.csv> -lf2 <*.csv>
+# For losses
+python src/ready/apis/plot_losses.py -c <path/to/plot_losses.yml> 
+
+# For performance
+python src/ready/apis/plot_performance.py -c <path/to/plot_performance.yml>
 ```
 
-![fig](../../../docs/figs/losses_for_TRAINe100-80gbGPU.png)
+![fig](../../../docs/figs/Loss_Values_Multiple_Models.png)
+![fig](../../../docs/figs/Performance_Metrics_Multiple_Models.png)
 
-The loss values used to create plots like the one above can be created
+The loss and performance values used to create plots like the one above can be created
 and stored in .csv files using train_mobious.py.
-To run this file, use `bash scripts/models/train_unet_with_mobious.bash`
+To run this file, adjust the config arguments in `configs/models/unet/config_train_unet_with_mobious.yaml` if needed, use `bash scripts/models/train_unet_with_mobious.bash`
 
 ## Rebinding model to new nodes (NCHW to NHWC)
 ```
