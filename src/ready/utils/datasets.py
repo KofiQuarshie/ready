@@ -102,7 +102,6 @@ class MobiousDataset(Dataset):
         masks_path = os.path.join(self.f_dir, "masks", self.masks_path[idx])
         # TODO check when there is no numpy lalbels
         # labels_path = os.path.join(self.f_dir, "labels", self.labels_path[idx])
-
         image = read_image(img_path).type(
             torch.float
         )  # / 255 #torch.Size([1, 3, 400, 640])
@@ -201,4 +200,52 @@ class MobiousDataset(Dataset):
         encode_mask=encode_mask.squeeze(0) # from torch.Size([1, 400, 640]) to #torch.Size([400, 640])
 
         # return image, label
+        return image, encode_mask
+
+class OPENEDS_Dataset(Dataset):
+    """
+    OPENEDS_Dataset
+    """
+
+    def __init__(self, f_dir, transform=None, target_transform=None):
+        self.transform = transform
+        self.target_transform = target_transform
+        self.f_dir = f_dir
+
+        self.img_path = list(os.listdir(os.path.join(self.f_dir, "images")))
+        self.masks_path = [i.replace(".jpg", ".png") for i in self.img_path]
+
+    def __len__(self):
+        return len(self.img_path)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.f_dir, "images", self.img_path[idx])
+        masks_path = os.path.join(self.f_dir, "masks", self.masks_path[idx])
+
+        image = read_image(img_path).type(torch.float) / 255
+
+        mask = Image.open(masks_path).convert("P")
+        mask = np.array(mask)
+        mask = torch.tensor(mask, dtype=torch.long)
+
+        encode_mask = torch.tensor(
+            np.zeros((mask.shape[0], mask.shape[1])), dtype=torch.long
+        )
+        encode_mask[mask > 0] = 1  # sclera (0 to 10)
+        encode_mask[mask > 30] = 2  # pupil (20 to 30)
+        encode_mask[mask > 180] = 3  # iris (40 to 180)
+
+        seed = np.random.randint(2147483647) # make a seed with numpy generator
+        random.seed(seed) # apply this seed to img transform
+        torch.manual_seed(seed) # needed for torchvision 0.7
+        if self.transform:
+            image = self.transform(image)
+
+        random.seed(seed) # apply this seed to target transform
+        torch.manual_seed(seed) # needed for torchvision 0.7
+        if self.target_transform:
+            encode_mask = self.target_transform(encode_mask)
+
+        encode_mask=encode_mask.squeeze(0) # from torch.Size([1, H, W]) to torch.Size([H, W])
+
         return image, encode_mask
