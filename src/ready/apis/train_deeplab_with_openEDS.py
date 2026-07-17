@@ -14,7 +14,7 @@ from torch import nn
 from torch import optim as optim
 
 from ready.models.deeplabv3 import DeepLabV3, deeplabv3_mobilenet_v3_large
-from ready.utils.datasets import OPENEDS_Dataset
+from ready.utils.datasets import EyeDataset
 from ready.utils.metrics import evaluate
 from ready.utils.utils import (HOME_PATH, create_data_loaders, evaluate_model,
                                loss_values_file_writer,
@@ -261,7 +261,7 @@ def main(args):
 
     ## Length 5; github_data_path
     ## Length 1143;  data_path
-    full_dataset = OPENEDS_Dataset(
+    full_dataset = EyeDataset(
         data_path, transform=transform_arg ,target_transform=target_transform_arg
         )
 
@@ -290,7 +290,7 @@ def main(args):
 
         # model.summary()
 
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
         loss_fn = nn.CrossEntropyLoss()
         # TODO: check which criterium properties to setup
         # ?loss_fn = nn.CrossEntropyLoss(ignore_index=-1).cuda()
@@ -311,7 +311,8 @@ def main(args):
                                       "precision",
                                       "fbeta",
                                       "miou",
-                                      "dice"
+                                      "dice",
+                                      "hausdorff_distance"
                                       ]
         # Training Metrics
 
@@ -340,6 +341,7 @@ def main(args):
             "fbeta": 0.0,
             "miou": 0.0,
             "dice": 0.0,
+            "hausdorff_distance": 0.0
         }
             
             validation_performance = {
@@ -350,6 +352,7 @@ def main(args):
             "fbeta": 0.0,
             "miou": 0.0,
             "dice": 0.0,
+            "hausdorff_distance": 0.0
         }
             # Training
             logger.info(f"Training Section")
