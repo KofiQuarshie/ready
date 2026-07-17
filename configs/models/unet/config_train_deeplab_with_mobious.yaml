@@ -5,7 +5,7 @@ model:
 dataset:
     use_github_data_path_flag : False #data_path = FULL_GITHUB_DATA_PATH if use_github_data_path_flag else FULL_DATA_PATH
     github_data_path: "data/mobious/sample-frames/test640x640_samples"
-    data_path: "downloads/ready/datasets/s-natural/s-natural/"  #changed path to augmented data from Mo
+    data_path: "downloads/ready/datasets/mobious/MOBIOUS/train100per_1144/processed"  #changed path to augmented data from Mo
     models_path: "datasets/ready/mobious/models" 
     checkpoint_path: "datasets/?" 
 
@@ -31,5 +31,5 @@ model_hyperparameters:
     batch_size: 8
      #set to 0 to save enough RAM for training on CPU
     num_workers: 0
-    epochs: 2
+    epochs: 3
     learning_rate: 0.003
