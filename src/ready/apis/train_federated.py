@@ -70,7 +70,7 @@ if __name__ == "__main__":
     #torch.set_num_interop_threads(1)
     #torch.backends.mkldnn.enabled = False    
 
-    weights_path = "downloads/ready/datasets/ready/federated"
+    weights_path = "Scratch/scratch/ccaekqu/datasets/ready/ready/federated"
     weights = pathlib.Path(weights_path)
     
     federated(10, weights)
