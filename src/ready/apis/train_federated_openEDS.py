@@ -260,7 +260,7 @@ if __name__ == "__main__":
     #torch.save(model.state_dict(), model_name)
     #logger.info(f"Saved PyTorch Model State to {model_name}")
 
-    openEDS_weights = os.path.join(Path.home(), "downloads/ready/datasets/ready/federated/openEDS_weights.pth")
+    openEDS_weights = os.path.join(Path.home(), "Scratch/scratch/ccaekqu/datasets/ready/ready/federated/openEDS_weights.pth")
     os.makedirs(os.path.dirname(openEDS_weights), exist_ok=True)
     torch.save(model.state_dict(), openEDS_weights)
     logger.info(f"Saved openEDS weight to {openEDS_weights}")
