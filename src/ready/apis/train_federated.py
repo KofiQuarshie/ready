@@ -6,7 +6,7 @@ import torch.nn as nn
 from ready.apis.train_federated_mobious import main as train_federated_mobious
 import os
 import subprocess
-from ready.apis.train_deeplab_with_rti_eyes import main as train_federated_rti_eyes
+from ready.apis.train_federated_rti_eyes import main as train_federated_rti_eyes
 #from loguru import logger
 from argparse import Namespace
 
