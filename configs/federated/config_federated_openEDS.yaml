@@ -4,7 +4,8 @@ model:
 
 dataset:
     github_data_path: "data/openEDS"
-    data_path: "downloads/ready/datasets/ready"
+    #data_path: "downloads/ready/datasets/ready"
+    data_path: Scratch/scratch/ccaekqu/datasets/ready/ready"
     models_path: "datasets/ready/openEDS/models"
     checkpoint_path: "datasets/?"
 
