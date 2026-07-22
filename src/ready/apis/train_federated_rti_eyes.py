@@ -236,7 +236,7 @@ def main(args):
                                             transforms.GaussianBlur(kernel_size=(5, 13), sigma=(1, 50)),
                                             transforms.Normalize(mean=[0.285, 0.456, 0.406], std=[0.529, 0.524, 0.525]),
                                             transforms.ElasticTransform(alpha=100.0, sigma=5.0),
-                                            transforms.Resize((128, 128))
+                                            transforms.Resize((128, 128), antialias=True)
                                             ])
 
     transforms_rotations = transforms.Compose([
@@ -244,7 +244,7 @@ def main(args):
                                             transforms.RandomHorizontalFlip(p=0.5),
                                             transforms.RandomVerticalFlip(p=0.5),
                                             transforms.RandomRotation(45),
-                                            transforms.Resize((128, 128))
+                                            transforms.Resize((128, 128), antialias=True)
                                             ])
 
     transform_map = {
