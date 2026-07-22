@@ -132,7 +132,8 @@ if __name__ == "__main__":
     trainset = EyeDataset(
         #Change back to original path when done testing with sample data from repo
         #FULL_GITHUG_DATA_PATH+"/sample-frames/val3frames"
-        FULL_DATA_PATH+"/openEDS/openEDS"
+        #FULL_DATA_PATH+"/openEDS/openEDS"
+        FULL_DATA_PATH
     )
     logger.info(f"Length of trainset: {len(trainset)}")
 
