@@ -61,7 +61,7 @@ def federated(Num_of_rounds, weights):
 
 
         new_global_model = fedAvg(dataset_weights, dataset_sizes)
-        mobious_weights_path = os.path.join(pathlib.Path.home(), "downloads/ready/datasets/ready/federated/mobious_weights.pth")
+        mobious_weights_path = os.path.join(pathlib.Path.home(), "Scratch/scratch.ccaekqu/datasets/ready/ready/federated/mobious_weights.pth")
         os.makedirs(os.path.dirname(mobious_weights_path), exist_ok=True)
         torch.save(new_global_model, mobious_weights_path)
 
