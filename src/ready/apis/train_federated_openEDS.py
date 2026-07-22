@@ -121,6 +121,7 @@ if __name__ == "__main__":
     FULL_DATA_PATH = os.path.join(Path.home(), DATA_PATH)
     FULL_GITHUG_DATA_PATH = os.path.join(Path.cwd(), GITHUB_DATA_PATH)
     FULL_MODEL_PATH = os.path.join(Path.home(), MODEL_PATH)
+    FULL_PRETRAINED_MODEL_PATH = os.path.join(Path.home(), PRETRAINED_MODEL)
     if not os.path.exists(FULL_MODEL_PATH):
         os.mkdir(FULL_MODEL_PATH)
 
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     # outpu_image shape torch.Size([4, 400, 640])
 
     model = UNet(nch_in=3, nch_out=4, nch_ker=64)
-    weighted_files = list(Path(PRETRAINED_MODEL).rglob("*.pth"))
+    weighted_files = list(Path(FULL_PRETRAINED_MODEL_PATH).rglob("*.pth"))
     if weighted_files:
         latest_modification = max(weighted_files, key=lambda f: f.stat().st_mtime)
         logger.info(f"loading {latest_modification}")
