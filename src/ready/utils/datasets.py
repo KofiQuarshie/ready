@@ -24,8 +24,8 @@ class EyeDataset(Dataset):
         self.f_dir = f_dir
 
         self.img_path = list(os.listdir(os.path.join(self.f_dir, "images")))
-        self.labels_path = [i.replace(".png", ".npy") for i in self.img_path]
-        #self.labels_path =  self.img_path
+        #self.labels_path = [i.replace(".png", ".npy") for i in self.img_path]
+        self.labels_path =  self.img_path
 
     def __len__(self):
         return len(self.img_path)
@@ -196,13 +196,13 @@ class Rti_Eyes_Dataset(Dataset):
         #converting image to pytorch so the float type can be attached to it
         image = torch.tensor(np.array(Image.open(img_path).convert("RGB")), dtype=torch.float) / 255
         image = image.permute(2, 0, 1)  # convert from [H, W, 3] to [3, H, W]
-        #try:
-        mask = np.array(Image.open(masks_path).convert("RGB"))
-        #except:
-            #print(f"Corrupted file skipped: {masks_path} — {e}")
-            #image = torch.zeros(3, 128, 128)
-            #encode_mask = torch.zeros(128, 128, dtype=torch.long)
-            #return image, encode_mask
+        try:
+            mask = np.array(Image.open(masks_path).convert("RGB"))
+        except:
+            print(f"Corrupted file skipped: {masks_path} — {e}")
+            image = torch.zeros(3, 128, 128)
+            encode_mask = torch.zeros(128, 128, dtype=torch.long)
+            return image, encode_mask
         #create 2d array of 0s, then proper pixel values for sclera, iris and pupil are initialised
         encode_mask = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.int64)
         encode_mask[np.all(mask == [0,   0,   255], axis=2)] = 1  # sclera
