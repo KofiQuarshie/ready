@@ -39,12 +39,11 @@ def federated(Num_of_rounds, weights):
 
     for round in range(Num_of_rounds):
 
+        args_rti = Namespace(config_file="configs/federated/config_federated_rti_eyes.yaml")
+        train_federated_rti_eyes(args_rti)
 
         #os.system("bash scrips/federated/train_federated_openEDS.bash")
         subprocess.run(["bash", "scripts/federated/train_federated_openEDS.bash"])
-
-        args_rti = Namespace(config_file="configs/federated/config_federated_rti_eyes.yaml")
-        train_federated_rti_eyes(args_rti)
 
         args_mobious = Namespace(config_file="configs/federated/config_federated_mobious.yaml")
         train_federated_mobious(args_mobious)

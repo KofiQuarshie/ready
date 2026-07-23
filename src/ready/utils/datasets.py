@@ -198,7 +198,7 @@ class Rti_Eyes_Dataset(Dataset):
         image = image.permute(2, 0, 1)  # convert from [H, W, 3] to [3, H, W]
         try:
             mask = np.array(Image.open(masks_path).convert("RGB"))
-        except:
+        except Exception as e:
             print(f"Corrupted file skipped: {masks_path} — {e}")
             image = torch.zeros(3, 128, 128)
             encode_mask = torch.zeros(128, 128, dtype=torch.long)
