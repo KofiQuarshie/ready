@@ -6,7 +6,7 @@ import torch.nn as nn
 from ready.apis.train_federated_mobious import main as train_federated_mobious
 import os
 import subprocess
-from ready.apis.train_federated_rti_eyes import main as train_federated_rti_eyes
+#from ready.apis.train_federated_rti_eyes import main as train_federated_rti_eyes
 #from loguru import logger
 from argparse import Namespace
 
@@ -39,8 +39,8 @@ def federated(Num_of_rounds, weights):
 
     for round in range(Num_of_rounds):
 
-        args_rti = Namespace(config_file="configs/federated/config_federated_rti_eyes.yaml")
-        train_federated_rti_eyes(args_rti)
+        #args_rti = Namespace(config_file="configs/federated/config_federated_rti_eyes.yaml")
+        #train_federated_rti_eyes(args_rti)
 
         #os.system("bash scrips/federated/train_federated_openEDS.bash")
         subprocess.run(["bash", "scripts/federated/train_federated_openEDS.bash"])
@@ -50,18 +50,18 @@ def federated(Num_of_rounds, weights):
 
         mobious_weights = torch.load(weights /"mobious_weights.pth")
         openEDS_weights = torch.load(weights /"openEDS_weights.pth")
-        rti_eyes_weights = torch.load(weights /"rti_eyes_weights.pth")
+        #rti_eyes_weights = torch.load(weights /"rti_eyes_weights.pth")
 
         mobious_size = 3559
         openEDS_size = 27431
-        rti_eyes_size = 8000
+        #rti_eyes_size = 8000
 
-        dataset_weights = [mobious_weights, openEDS_weights, rti_eyes_weights]
-        dataset_sizes = [mobious_size, openEDS_size, rti_eyes_size]
+        dataset_weights = [mobious_weights, openEDS_weights] #rti_eyes_weights]
+        dataset_sizes = [mobious_size, openEDS_size] #rti_eyes_size]
 
 
         new_global_model = fedAvg(dataset_weights, dataset_sizes)
-        mobious_weights_path = os.path.join(pathlib.Path.home(), "Scratch/scratch.ccaekqu/datasets/ready/ready/federated/mobious_weights.pth")
+        mobious_weights_path = os.path.join(pathlib.Path.home(), "Scratch/scratch/ccaekqu/datasets/ready/ready/federated/mobious_weights.pth")
         os.makedirs(os.path.dirname(mobious_weights_path), exist_ok=True)
         torch.save(new_global_model, mobious_weights_path)
 
